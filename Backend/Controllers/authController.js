@@ -2,11 +2,12 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 
+// REGISTER
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body;
 
   if (!name || !email || !password || !role) {
-    return res.status(400).json({ message: "All fields are required" });
+    return res.status(400).json({ message: "All fields required" });
   }
 
   try {
@@ -29,13 +30,9 @@ exports.register = async (req, res) => {
   }
 };
 
-
+// LOGIN
 exports.login = (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: "All fields required" });
-  }
 
   const sql = "SELECT * FROM users WHERE email = ?";
 
@@ -60,8 +57,7 @@ exports.login = (req, res) => {
     res.json({
       message: "Login successful",
       token,
-      role: user.role
+      role: user.role,
     });
   });
 };
-
