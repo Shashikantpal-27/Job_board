@@ -2,18 +2,34 @@ import React, { useState } from "react";
 import axios from "axios";
 
 function PostJob() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [salary, setSalary] = useState("");
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    location: "",
+    salary: "",
+    start_date: "",
+    deadline: "",
+  });
 
   const token = localStorage.getItem("token");
 
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
   const handlePostJob = async () => {
     try {
+      // 🔥 validation
+      if (!form.title || !form.description) {
+        alert("Title & Description required");
+        return;
+      }
+
+      console.log("SENDING DATA:", form); // debug
+
       await axios.post(
         "http://localhost:5000/api/jobs",
-        { title, description, location, salary },
+        form,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -21,43 +37,82 @@ function PostJob() {
         }
       );
 
-      alert("Job posted successfully");
-    } catch {
-      alert("Failed to post job");
+      alert("✅ Job posted successfully");
+
+      // reset form
+      setForm({
+        title: "",
+        description: "",
+        location: "",
+        salary: "",
+        start_date: "",
+        deadline: "",
+      });
+
+    } catch (err) {
+      console.log("POST ERROR:", err.response?.data || err);
+      alert(err.response?.data?.message || "❌ Failed to post job");
     }
   };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-6 rounded shadow w-96">
-        <h2 className="text-xl font-bold mb-4">Post Job</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">Post Job</h2>
 
         <input
+          name="title"
+          value={form.title}
+          onChange={handleChange}
           className="border p-2 w-full mb-3"
-          placeholder="Title"
-          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Job Title"
         />
 
         <input
+          name="location"
+          value={form.location}
+          onChange={handleChange}
           className="border p-2 w-full mb-3"
           placeholder="Location"
-          onChange={(e) => setLocation(e.target.value)}
         />
 
         <input
+          name="salary"
+          value={form.salary}
+          onChange={handleChange}
           className="border p-2 w-full mb-3"
           placeholder="Salary"
-          onChange={(e) => setSalary(e.target.value)}
         />
 
         <textarea
+          name="description"
+          value={form.description}
+          onChange={handleChange}
           className="border p-2 w-full mb-3"
-          placeholder="Description"
-          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Job Description"
+        />
+
+        {/* 🔥 NEW FIELDS */}
+        <label className="text-sm">Start Date</label>
+        <input
+          type="date"
+          name="start_date"
+          value={form.start_date}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3"
+        />
+
+        <label className="text-sm">Deadline</label>
+        <input
+          type="date"
+          name="deadline"
+          value={form.deadline}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3"
         />
 
         <button
-          className="bg-green-500 text-white w-full p-2 rounded"
+          className="bg-green-500 text-white w-full p-2 rounded mt-2"
           onClick={handlePostJob}
         >
           Post Job

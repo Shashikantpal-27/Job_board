@@ -1,81 +1,51 @@
 const express = require("express");
 const router = express.Router();
 
-const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
+const auth = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 const upload = require("../middleware/upload");
 
-// 🔥 SAFE IMPORT (no destructuring issues)
 const jobController = require("../controllers/jobController");
-
-
-// ================= JOB ROUTES =================
-
-// ✅ Create Job (Employer only)
-router.post(
-  "/jobs",
-  authMiddleware,
-  roleMiddleware("employer"),
-  jobController.createJob
-);
-
-// ✅ Get All Jobs (Public)
+console.log("Job Routes Working");
+console.log("🔥 jobRoutes loaded");
+// JOB
+router.post("/jobs", auth, role("employer"), jobController.createJob);
 router.get("/jobs", jobController.getJobs);
+router.put("/jobs/:id", auth, role("employer"), jobController.updateJob);
+router.delete("/jobs/:id", auth, role("employer"), jobController.deleteJob);
 
-
-// ================= APPLY ROUTES =================
-
-// ✅ Apply Job (Candidate + Resume Upload)
+// APPLY
 router.post(
-  "/apply",
-  authMiddleware,
-  roleMiddleware("candidate"),
+  "/jobs/:id/apply",
+  auth,
+  role("candidate"),
   upload.single("resume"),
   jobController.applyJob
 );
 
-
-// ================= CANDIDATE =================
-
-// ✅ My Applications (Tracking)
+// APPLICANTS
 router.get(
-  "/my-applications",
-  authMiddleware,
-  jobController.getMyApplications
-);
-
-
-// ================= EMPLOYER =================
-
-// ✅ Get Applicants
-router.get(
-  "/applicants",
-  authMiddleware,
-  roleMiddleware("employer"),
+  "/jobs/:id/applicants",
+  auth,
+  role("employer"),
   jobController.getApplicants
 );
 
-// ✅ Update Job
-router.put(
-  "/jobs/:id",
-  authMiddleware,
-  roleMiddleware("employer"),
-  jobController.updateJob
-);
-
-// ✅ Delete Job
-router.delete(
-  "/jobs/:id",
-  authMiddleware,
-  roleMiddleware("employer"),
-  jobController.deleteJob
-);
-
-// ✅ Update Application Status (Select/Reject)
+// STATUS
 router.put(
   "/applications/:id",
-  authMiddleware,
+  auth,
+  role("employer"),
   jobController.updateApplicationStatus
 );
+
+// TRACK
+router.get(
+  "/my-applications",
+  auth,
+  jobController.getMyApplications
+);
+
+router.get("/my-jobs", auth, role("employer"), jobController.getMyJobs);
 
 module.exports = router;

@@ -3,7 +3,7 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 
 const ApplyJob = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // job id
   const token = localStorage.getItem("token");
 
   const [form, setForm] = useState({
@@ -25,27 +25,31 @@ const ApplyJob = () => {
   const handleSubmit = async () => {
     const data = new FormData();
 
+    // append form data
     Object.keys(form).forEach((key) => {
       data.append(key, form[key]);
     });
 
-    data.append("job_id", id);
-
+    // append resume
     if (file) {
       data.append("resume", file);
     }
 
     try {
-      await axios.post("http://localhost:5000/api/apply", data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await axios.post(
+        `http://localhost:5000/api/jobs/${id}/apply`, // ✅ FIXED
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       alert("✅ Application Submitted");
     } catch (err) {
       console.log(err);
-      alert("❌ Failed");
+      alert(err.response?.data?.message || "❌ Failed");
     }
   };
 
@@ -64,7 +68,11 @@ const ApplyJob = () => {
         <input name="linkedin" placeholder="LinkedIn" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
         <input name="github" placeholder="GitHub" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
 
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} className="mb-3" />
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="mb-3"
+        />
 
         <button
           onClick={handleSubmit}

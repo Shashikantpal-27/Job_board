@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+
 axios.defaults.baseURL = "http://localhost:5000";
 
 function Login() {
@@ -8,23 +9,31 @@ function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post("/api/auth/login",  {
+      const res = await axios.post("/api/auth/login", {
         email,
         password,
       });
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.user.role);
+      console.log("LOGIN RESPONSE:", res.data);
 
-      if (res.data.user.role === "employer") {
-        window.location.href = "/dashboard";
-      } else {
-        window.location.href = "/jobs";
+      // ✅ HANDLE BOTH CASES (SAFE)
+      const token = res.data.token;
+      const role = res.data.role || res.data.user?.role;
+
+      if (!token || !role) {
+        alert("Login response invalid");
+        return;
       }
+
+      localStorage.setItem("token", res.data.token);
+localStorage.setItem("role", res.data.role);
+
+      // 🔄 redirect
+      window.location.href = "/jobs";
 
     } catch (err) {
       console.log(err);
-      alert("Login failed");
+      alert(err.response?.data?.message || "Login failed");
     }
   };
 
@@ -35,6 +44,7 @@ function Login() {
 
         <input
           className="border p-2 w-full mb-3"
+          type="email"
           placeholder="Email"
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -52,12 +62,13 @@ function Login() {
         >
           Login
         </button>
+
         <p className="mt-3 text-center">
-  New user?{" "}
-  <a href="/register" className="text-blue-500">
-    Register
-  </a>
-</p>
+          New user?{" "}
+          <a href="/register" className="text-blue-500">
+            Register
+          </a>
+        </p>
       </div>
     </div>
   );

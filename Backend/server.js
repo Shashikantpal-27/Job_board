@@ -1,25 +1,26 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const db = require("./config/db");
-const protectedRoutes = require("./routes/protectedRoutes");
 
 const app = express();
-const authRoutes = require("./routes/authRoutes");
 
+// 🔥 IMPORTS
+const authRoutes = require("./routes/authRoutes");
 const jobRoutes = require("./routes/jobRoutes");
 
 app.use(cors());
 app.use(express.json());
 
-
-
-app.get("/", (req, res) => {
-  res.send("Job Board Backend Running");
-});
+// 🔥 ROUTES
 app.use("/api/auth", authRoutes);
-app.use("/api", jobRoutes);
-app.use("/api", protectedRoutes);
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+app.use("/api", jobRoutes);   // ✅ MUST
+
+// TEST
+app.get("/", (req, res) => {
+  res.send("Server Running");
+});
+
+// START
+app.listen(5000, () => {
+  console.log("Server running on port 5000");
 });

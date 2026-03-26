@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 
-// REGISTER
+// ================= REGISTER =================
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -11,53 +11,78 @@ exports.register = async (req, res) => {
   }
 
   try {
+    // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const sql =
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)";
 
-    db.query(sql, [name, email, hashedPassword, role], (err) => {
+    db.query(sql, [name, email, hashedPassword, role], (err, result) => {
       if (err) {
-        return res
-          .status(500)
-          .json({ message: "User already exists or DB error" });
+        console.log("Register Error:", err);
+        return res.status(500).json({
+          message: "User already exists or DB error",
+        });
       }
 
-      res.status(201).json({ message: "User registered successfully" });
+      res.status(201).json({
+        message: "User registered successfully",
+      });
     });
   } catch (error) {
+    console.log("Server Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// LOGIN
+// ================= LOGIN =================
 exports.login = (req, res) => {
   const { email, password } = req.body;
 
-  const sql = "SELECT * FROM users WHERE email = ?";
+  // ⚠️ case-insensitive email check
+  const sql = "SELECT * FROM users WHERE LOWER(email) = LOWER(?)";
 
   db.query(sql, [email], async (err, results) => {
-    if (err || results.length === 0) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (err) {
+      console.log("DB Error:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(401).json({ message: "User not found" });
     }
 
     const user = results[0];
-    const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    try {
+      // 🔍 Debug (optional)
+      console.log("Entered Password:", password);
+      console.log("DB Hash:", user.password);
+
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      console.log("Password Match:", isMatch);
+
+      if (!isMatch) {
+        return res.status(401).json({ message: "Wrong password" });
+      }
+
+      
+      // 🔑 Generate JWT
+const token = jwt.sign(
+  { id: user.id, role: user.role },
+  process.env.JWT_SECRET || "secretkey",
+  { expiresIn: "1d" }
+);
+
+res.status(200).json({
+  message: "Login successful",
+  token,
+  role: user.role   // ✅ simple & clean
+});
+    } catch (error) {
+      console.log("Login Error:", error);
+      return res.status(500).json({ message: "Server error" });
     }
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.json({
-      message: "Login successful",
-      token,
-      role: user.role,
-    });
   });
 };
