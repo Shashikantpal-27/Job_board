@@ -1,6 +1,6 @@
 const Job = require("../models/Job");
 const Application = require("../models/Application");
-const User = require("../models/User");
+const User = require("../Models/User");
 
 // ================= CREATE JOB =================
 exports.createJob = async (req, res) => {
