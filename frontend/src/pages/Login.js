@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
-
-axios.defaults.baseURL = "http://localhost:5000";
+import API from "../api";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -9,30 +7,39 @@ function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post("/api/auth/login", {
+      const res = await API.post("/auth/login", {
         email,
         password,
       });
 
       console.log("LOGIN RESPONSE:", res.data);
 
-      // ✅ HANDLE BOTH CASES (SAFE)
       const token = res.data.token;
-      const role = res.data.role || res.data.user?.role;
+      const role = res.data.user?.role;
 
       if (!token || !role) {
         alert("Login response invalid");
         return;
       }
 
-      localStorage.setItem("token", res.data.token);
-localStorage.setItem("role", res.data.role);
+      // ✅ Save
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role);
 
-      // 🔄 redirect
-      window.location.href = "/jobs";
+      // ❌ REMOVE alert (problematic)
+      // alert("Login successful 🎉");
+
+      // 🔥 ADD slight delay (safe redirect)
+      setTimeout(() => {
+        if (role === "employer") {
+          window.location.href = "/dashboard";
+        } else {
+          window.location.href = "/jobs";
+        }
+      }, 500);
 
     } catch (err) {
-      console.log(err);
+      console.log("Login Error:", err);
       alert(err.response?.data?.message || "Login failed");
     }
   };
@@ -46,6 +53,7 @@ localStorage.setItem("role", res.data.role);
           className="border p-2 w-full mb-3"
           type="email"
           placeholder="Email"
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
 
@@ -53,11 +61,12 @@ localStorage.setItem("role", res.data.role);
           type="password"
           className="border p-2 w-full mb-3"
           placeholder="Password"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         <button
-          className="bg-blue-500 text-white w-full p-2 rounded"
+          className="bg-blue-500 text-white w-full p-2 rounded hover:bg-blue-600"
           onClick={handleLogin}
         >
           Login

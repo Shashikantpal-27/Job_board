@@ -1,240 +1,200 @@
-const db = require("../config/db");
-const sendEmail = require("../utils/email");
+const Job = require("../models/Job");
+const Application = require("../models/Application");
+const User = require("../models/User");
 
 // ================= CREATE JOB =================
-exports.createJob = (req, res) => {
-  let {
-    title,
-    description,
-    location,
-    salary,
-    start_date,
-    deadline
-  } = req.body;
+exports.createJob = async (req, res) => {
+  try {
+    let { title, description, location, salary, start_date, deadline, company } = req.body;
 
-  console.log("📩 DATA RECEIVED:", req.body);
-  console.log("👤 USER:", req.user);
-
-  // 🔥 fix empty values
-  location = location || "";
-  salary = salary || "";
-  start_date = start_date || null;
-  deadline = deadline || null;
-
-  const sql = `
-    INSERT INTO jobs 
-    (title, description, location, salary, start_date, deadline, employer_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
-
-  db.query(
-    sql,
-    [title, description, location, salary, start_date, deadline, req.user?.id],
-    (err) => {
-      if (err) {
-        console.log("🔥 CREATE JOB ERROR:", err); // 👈 IMPORTANT
-        return res.status(500).json({ message: err.message });
-      }
-
-      res.json({ message: "Job created successfully" });
+    if (!title || !description) {
+      return res.status(400).json({ message: "Title & Description required" });
     }
-  );
+
+    const job = await Job.create({
+      company,
+      title,
+      description,
+      location: location || "",
+      salary: salary || "",
+      start_date: start_date || null,
+      deadline: deadline || null,
+      employer_id: req.user.id, // ✅ IMPORTANT
+    });
+
+    res.status(201).json({
+      message: "Job created successfully",
+      job,
+    });
+  } catch (error) {
+    console.log("CREATE JOB ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
+
 // ================= GET ALL JOBS =================
-exports.getJobs = (req, res) => {
-  db.query("SELECT * FROM jobs ORDER BY id DESC", (err, result) => {
-    if (err) {
-      console.log("GET JOBS ERROR:", err);
-      return res.status(500).json(err);
-    }
-    res.json(result);
-  });
+exports.getJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find()
+      .populate("employer_id", "name")
+      .sort({ createdAt: -1 });
+
+    res.json(jobs);
+  } catch (error) {
+    console.log("GET JOBS ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
-// ================= GET MY JOBS (EMPLOYER) =================
-exports.getMyJobs = (req, res) => {
-  const sql = "SELECT * FROM jobs WHERE employer_id = ? ORDER BY id DESC";
+// ================= GET MY JOBS =================
+exports.getMyJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find({ employer_id: req.user.id })
+      .sort({ createdAt: -1 });
 
-  db.query(sql, [req.user.id], (err, result) => {
-    if (err) {
-      console.log("MY JOBS ERROR:", err);
-      return res.status(500).json(err);
-    }
-    res.json(result);
-  });
+    res.json(jobs);
+  } catch (error) {
+    console.log("MY JOBS ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // ================= APPLY JOB =================
-exports.applyJob = (req, res) => {
-  const job_id = req.params.id;
+exports.applyJob = async (req, res) => {
+  try {
+    const resume = req.file ? req.file.filename : null;
 
-  const {
-    name,
-    course,
-    dob,
-    college,
-    phone,
-    linkedin,
-    github
-  } = req.body;
+    const application = new Application({
+      job_id: req.body.job_id,         // 🔥 MUST
+      candidate_id: req.user.id,       // 🔥 MUST
+      name: req.body.name,
+      course: req.body.course,
+      dob: req.body.dob,
+      college: req.body.college,
+      phone: req.body.phone,
+      linkedin: req.body.linkedin,
+      github: req.body.github,
+      resume,
+    });
 
-  if (!req.file) {
-    return res.status(400).json({ message: "Resume required" });
+    await application.save();
+
+    res.json({ message: "Applied successfully", application });
+
+  } catch (err) {
+    console.log("APPLY ERROR:", err);
+    res.status(500).json({ message: "Apply failed" });
   }
-
-  // 🔥 prevent duplicate apply
-  const checkSql = "SELECT * FROM applications WHERE job_id=? AND candidate_id=?";
-  db.query(checkSql, [job_id, req.user.id], (err, result) => {
-    if (result.length > 0) {
-      return res.status(400).json({ message: "Already applied" });
-    }
-
-    const resume = req.file.filename;
-
-    const sql = `
-      INSERT INTO applications 
-      (job_id, candidate_id, name, course, dob, college, phone, linkedin, github, resume)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    db.query(
-      sql,
-      [
-        job_id,
-        req.user.id,
-        name,
-        course,
-        dob,
-        college,
-        phone,
-        linkedin,
-        github,
-        resume
-      ],
-      (err) => {
-        if (err) {
-          console.log("APPLY ERROR:", err);
-          return res.status(500).json({ message: err.message });
-        }
-
-        res.json({ message: "Applied successfully" });
-      }
-    );
-  });
 };
+// ================= GET APPLICANTS (FIXED) =================
+exports.getApplicants = async (req, res) => {
+  try {
+    const job_id = req.params.id;
 
-// ================= GET APPLICANTS =================
-exports.getApplicants = (req, res) => {
-  const job_id = req.params.id;
+    // ✅ Check job ownership
+    const job = await Job.findOne({
+      _id: job_id,
+      employer_id: req.user.id,
+    });
 
-  const sql = `
-    SELECT a.*, u.name, u.email
-    FROM applications a
-    JOIN users u ON a.candidate_id = u.id
-    WHERE a.job_id = ?
-  `;
-
-  db.query(sql, [job_id], (err, result) => {
-    if (err) {
-      console.log("APPLICANTS ERROR:", err);
-      return res.status(500).json(err);
+    if (!job) {
+      return res.status(403).json({ message: "Unauthorized" });
     }
-    res.json(result);
-  });
+
+    // 🔥 FIXED QUERY
+    const applications = await Application.find({ job_id })
+      .populate("candidate_id", "name email")
+      .sort({ createdAt: -1 });
+
+    res.json(applications);
+
+  } catch (error) {
+    console.log("APPLICANTS ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // ================= UPDATE JOB =================
-exports.updateJob = (req, res) => {
-  const { id } = req.params;
-  const { title, description, location, salary, start_date, deadline } = req.body;
+exports.updateJob = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-  const sql = `
-    UPDATE jobs 
-    SET title=?, description=?, location=?, salary=?, start_date=?, deadline=?
-    WHERE id=? AND employer_id=?
-  `;
+    const job = await Job.findOneAndUpdate(
+      { _id: id, employer_id: req.user.id },
+      req.body,
+      { new: true }
+    );
 
-  db.query(
-    sql,
-    [title, description, location, salary, start_date, deadline, id, req.user.id],
-    (err) => {
-      if (err) {
-        console.log("UPDATE ERROR:", err);
-        return res.status(500).json(err);
-      }
-      res.json({ message: "Job updated" });
+    if (!job) {
+      return res.status(404).json({ message: "Job not found or unauthorized" });
     }
-  );
+
+    res.json({ message: "Job updated", job });
+  } catch (error) {
+    console.log("UPDATE ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // ================= DELETE JOB =================
-exports.deleteJob = (req, res) => {
-  const { id } = req.params;
+exports.deleteJob = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-  // delete applications first
-  db.query("DELETE FROM applications WHERE job_id=?", [id], (err) => {
-    if (err) return res.status(500).json(err);
+    await Application.deleteMany({ job_id: id });
 
-    // then delete job
-    db.query(
-      "DELETE FROM jobs WHERE id=? AND employer_id=?",
-      [id, req.user.id],
-      (err) => {
-        if (err) return res.status(500).json(err);
+    const job = await Job.findOneAndDelete({
+      _id: id,
+      employer_id: req.user.id,
+    });
 
-        res.json({ message: "Job deleted" });
-      }
-    );
-  });
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    res.json({ message: "Job deleted successfully" });
+  } catch (error) {
+    console.log("DELETE ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // ================= MY APPLICATIONS =================
-exports.getMyApplications = (req, res) => {
-  const sql = `
-    SELECT a.*, j.title
-    FROM applications a
-    JOIN jobs j ON a.job_id = j.id
-    WHERE a.candidate_id = ?
-  `;
+exports.getMyApplications = async (req, res) => {
+  try {
+    const apps = await Application.find({
+      candidate_id: req.user.id,
+    })
+      .populate("job_id", "title company location")
+      .sort({ createdAt: -1 });
 
-  db.query(sql, [req.user.id], (err, result) => {
-    if (err) {
-      console.log("MY APPLICATIONS ERROR:", err);
-      return res.status(500).json(err);
-    }
-    res.json(result);
-  });
+    res.json(apps);
+  } catch (error) {
+    console.log("MY APPLICATIONS ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // ================= UPDATE STATUS =================
-exports.updateApplicationStatus = (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
+exports.updateApplicationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-  db.query(
-    "UPDATE applications SET status=? WHERE id=?",
-    [status, id],
-    (err) => {
-      if (err) return res.status(500).json(err);
+    const application = await Application.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    ).populate("candidate_id", "email");
 
-      const sql = `
-        SELECT u.email 
-        FROM applications a
-        JOIN users u ON a.candidate_id = u.id
-        WHERE a.id = ?
-      `;
-
-      db.query(sql, [id], async (err, result) => {
-        if (result.length > 0 && status === "selected") {
-         // await sendEmail(
-          //  result[0].email,
-          //  "Selected 🎉",
-          //  "You are selected!"
-         // );
-        }
-
-        res.json({ message: "Status updated" });
-      });
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
     }
-  );
+
+    res.json({ message: "Status updated", application });
+
+  } catch (error) {
+    console.log("STATUS ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };

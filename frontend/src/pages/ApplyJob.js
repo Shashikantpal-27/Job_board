@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useParams } from "react-router-dom";
+import API from "../api";
 
 const ApplyJob = () => {
-  const { id } = useParams(); // job id
-  const token = localStorage.getItem("token");
+  const { id } = useParams();
 
   const [form, setForm] = useState({
     name: "",
@@ -23,33 +22,46 @@ const ApplyJob = () => {
   };
 
   const handleSubmit = async () => {
-    const data = new FormData();
-
-    // append form data
-    Object.keys(form).forEach((key) => {
-      data.append(key, form[key]);
-    });
-
-    // append resume
-    if (file) {
-      data.append("resume", file);
-    }
-
     try {
-      await axios.post(
-        `http://localhost:5000/api/jobs/${id}/apply`, // ✅ FIXED
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // ✅ Validation
+      if (!form.name || !form.phone || !file) {
+        return alert("Please fill required fields + upload resume");
+      }
 
-      alert("✅ Application Submitted");
+      const data = new FormData();
+
+      // append form fields
+      Object.keys(form).forEach((key) => {
+        data.append(key, form[key]);
+      });
+
+      // append resume
+      data.append("resume", file);
+
+      // 🔥 FINAL API CALL (CORRECT)
+      await API.post(`/jobs/${id}/apply`, data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      alert("✅ Application Submitted Successfully 🎉");
+
+      // 🔄 Reset form
+      setForm({
+        name: "",
+        course: "",
+        dob: "",
+        college: "",
+        phone: "",
+        linkedin: "",
+        github: "",
+      });
+      setFile(null);
+
     } catch (err) {
-      console.log(err);
-      alert(err.response?.data?.message || "❌ Failed");
+      console.log("APPLY ERROR:", err.response?.data || err.message);
+      alert(err.response?.data?.message || "❌ Failed to apply");
     }
   };
 
@@ -60,14 +72,63 @@ const ApplyJob = () => {
           Apply for Job
         </h2>
 
-        <input name="name" placeholder="Full Name" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
-        <input name="course" placeholder="Course" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
-        <input type="date" name="dob" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
-        <input name="college" placeholder="College" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
-        <input name="phone" placeholder="Phone" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
-        <input name="linkedin" placeholder="LinkedIn" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
-        <input name="github" placeholder="GitHub" onChange={handleChange} className="border p-2 w-full mb-3 rounded" />
+        <input
+          name="name"
+          placeholder="Full Name"
+          value={form.name}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3 rounded"
+        />
 
+        <input
+          name="course"
+          placeholder="Course"
+          value={form.course}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3 rounded"
+        />
+<label className="text-sm text-gray-600">Date of Birth</label>
+        <input
+          type="date"
+          name="dob"
+          value={form.dob}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3 rounded"
+        />
+
+        <input
+          name="college"
+          placeholder="College"
+          value={form.college}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3 rounded"
+        />
+
+        <input
+          name="phone"
+          placeholder="Phone"
+          value={form.phone}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3 rounded"
+        />
+
+        <input
+          name="linkedin"
+          placeholder="LinkedIn URL"
+          value={form.linkedin}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3 rounded"
+        />
+
+        <input
+          name="github"
+          placeholder="GitHub URL"
+          value={form.github}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3 rounded"
+        />
+
+        {/* Resume Upload */}
         <input
           type="file"
           onChange={(e) => setFile(e.target.files[0])}
@@ -76,9 +137,9 @@ const ApplyJob = () => {
 
         <button
           onClick={handleSubmit}
-          className="bg-green-500 text-white w-full py-2 rounded"
+          className="bg-green-500 text-white w-full py-2 rounded hover:bg-green-600"
         >
-          Submit
+          Submit Application
         </button>
       </div>
     </div>

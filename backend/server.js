@@ -2,25 +2,33 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
+// 🔥 DB CONNECTION
+const connectDB = require("./config/db");
+
 const app = express();
 
-// 🔥 IMPORTS
-const authRoutes = require("./routes/authRoutes");
-const jobRoutes = require("./routes/jobRoutes");
+// 🔥 CONNECT MONGODB
+connectDB();
 
+// 🔥 MIDDLEWARE
 app.use(cors());
 app.use(express.json());
 
 // 🔥 ROUTES
-app.use("/api/auth", authRoutes);
-app.use("/api", jobRoutes);   // ✅ MUST
+const authRoutes = require("./routes/authRoutes");
+const jobRoutes = require("./routes/jobRoutes");
 
-// TEST
+app.use("/api/auth", authRoutes);
+app.use("/api", jobRoutes);
+
+// ✅ TEST ROUTE
 app.get("/", (req, res) => {
-  res.send("Server Running");
+  res.send("Server Running 🚀");
 });
 
-// START
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+// 🔥 SERVER START
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

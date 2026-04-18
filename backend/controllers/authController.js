@@ -1,33 +1,48 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const db = require("../config/db");
+const User = require("../models/user");
 
 // ================= REGISTER =================
 exports.register = async (req, res) => {
-  const { name, email, password, role } = req.body;
-
-  if (!name || !email || !password || !role) {
-    return res.status(400).json({ message: "All fields required" });
-  }
-
   try {
+    const { name, email, password, role } = req.body;
+
+    // ✅ Validation
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    // ✅ Check if user exists
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
     // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const sql =
-      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)";
+    // ✅ Create user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
 
-    db.query(sql, [name, email, hashedPassword, role], (err, result) => {
-      if (err) {
-        console.log("Register Error:", err);
-        return res.status(500).json({
-          message: "User already exists or DB error",
-        });
-      }
-
-      res.status(201).json({
-        message: "User registered successfully",
-      });
+    res.status(201).json({
+      message: "Registered successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     console.log("Server Error:", error);
@@ -36,53 +51,46 @@ exports.register = async (req, res) => {
 };
 
 // ================= LOGIN =================
-exports.login = (req, res) => {
-  const { email, password } = req.body;
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  // ⚠️ case-insensitive email check
-  const sql = "SELECT * FROM users WHERE LOWER(email) = LOWER(?)";
-
-  db.query(sql, [email], async (err, results) => {
-    if (err) {
-      console.log("DB Error:", err);
-      return res.status(500).json({ message: "Database error" });
+    // ✅ Validation
+    if (!email || !password) {
+      return res.status(400).json({ message: "All fields required" });
     }
 
-    if (results.length === 0) {
-      return res.status(401).json({ message: "User not found" });
+    // ✅ Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const user = results[0];
-
-    try {
-      // 🔍 Debug (optional)
-      console.log("Entered Password:", password);
-      console.log("DB Hash:", user.password);
-
-      const isMatch = await bcrypt.compare(password, user.password);
-
-      console.log("Password Match:", isMatch);
-
-      if (!isMatch) {
-        return res.status(401).json({ message: "Wrong password" });
-      }
-
-      
-      // 🔑 Generate JWT
-const token = jwt.sign(
-  { id: user.id, role: user.role },
-  process.env.JWT_SECRET || "secretkey",
-  { expiresIn: "1d" }
-);
-
-res.status(200).json({
-  message: "Login successful",
-  token,
-  role: user.role   // ✅ simple & clean
-});
-    } catch (error) {
-      console.log("Login Error:", error);
-      return res.status(500).json({ message: "Server error" });
+    // 🔐 Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
-  });
+
+    // 🔑 JWT Token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.log("Login Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };

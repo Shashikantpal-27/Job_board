@@ -59,6 +59,10 @@ function PostJob() {
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-6 rounded shadow w-96">
         <h2 className="text-xl font-bold mb-4 text-center">Post Job</h2>
+        <input
+  placeholder="Company Name"
+  onChange={(e) => setForm({ ...form, company: e.target.value })}
+/>
 
         <input
           name="title"
