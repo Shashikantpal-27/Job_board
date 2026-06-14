@@ -22,7 +22,7 @@ function EditJob() {
     axios
       .get("http://localhost:5000/api/jobs")
       .then((res) => {
-        const job = res.data.find((j) => j.id == id);
+        const job = res.data.find((j) => j.id === id);
 
         if (job) {
           setForm({
