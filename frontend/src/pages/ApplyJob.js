@@ -18,36 +18,39 @@ const ApplyJob = () => {
   const [file, setFile] = useState(null);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handleSubmit = async () => {
     try {
-      // ✅ Validation
       if (!form.name || !form.phone || !file) {
         return alert("Please fill required fields + upload resume");
       }
 
       const data = new FormData();
 
-      // append form fields
+      // Form fields
       Object.keys(form).forEach((key) => {
         data.append(key, form[key]);
       });
 
-      // append resume
+      // 🔥 IMPORTANT FIX
+      data.append("job_id", id);
+
+      // Resume
       data.append("resume", file);
 
-      // 🔥 FINAL API CALL (CORRECT)
       await API.post(`/jobs/${id}/apply`, data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      alert("✅ Application Submitted Successfully 🎉");
+      alert("✅ Application Submitted Successfully");
 
-      // 🔄 Reset form
       setForm({
         name: "",
         course: "",
@@ -57,6 +60,7 @@ const ApplyJob = () => {
         linkedin: "",
         github: "",
       });
+
       setFile(null);
 
     } catch (err) {
@@ -87,7 +91,11 @@ const ApplyJob = () => {
           onChange={handleChange}
           className="border p-2 w-full mb-3 rounded"
         />
-<label className="text-sm text-gray-600">Date of Birth</label>
+
+        <label className="text-sm text-gray-600">
+          Date of Birth
+        </label>
+
         <input
           type="date"
           name="dob"
@@ -128,7 +136,6 @@ const ApplyJob = () => {
           className="border p-2 w-full mb-3 rounded"
         />
 
-        {/* Resume Upload */}
         <input
           type="file"
           onChange={(e) => setFile(e.target.files[0])}
