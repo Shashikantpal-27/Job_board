@@ -3,6 +3,7 @@ import axios from "axios";
 
 function PostJob() {
   const [form, setForm] = useState({
+    company: "",
     title: "",
     description: "",
     location: "",
@@ -19,13 +20,12 @@ function PostJob() {
 
   const handlePostJob = async () => {
     try {
-      // 🔥 validation
-      if (!form.title || !form.description) {
-        alert("Title & Description required");
+      if (!form.company || !form.title || !form.description) {
+        alert("Company, Title & Description required");
         return;
       }
 
-      console.log("SENDING DATA:", form); // debug
+      console.log("SENDING DATA:", form);
 
       await axios.post(
         "https://job-board-1555.onrender.com/api/jobs",
@@ -39,8 +39,8 @@ function PostJob() {
 
       alert("✅ Job posted successfully");
 
-      // reset form
       setForm({
+        company: "",
         title: "",
         description: "",
         location: "",
@@ -58,11 +58,17 @@ function PostJob() {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-6 rounded shadow w-96">
-        <h2 className="text-xl font-bold mb-4 text-center">Post Job</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">
+          Post Job
+        </h2>
+
         <input
-  placeholder="Company Name"
-  onChange={(e) => setForm({ ...form, company: e.target.value })}
-/>
+          name="company"
+          value={form.company}
+          onChange={handleChange}
+          className="border p-2 w-full mb-3"
+          placeholder="Company Name"
+        />
 
         <input
           name="title"
@@ -96,7 +102,6 @@ function PostJob() {
           placeholder="Job Description"
         />
 
-        {/* 🔥 NEW FIELDS */}
         <label className="text-sm">Start Date</label>
         <input
           type="date"

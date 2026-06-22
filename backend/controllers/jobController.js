@@ -104,6 +104,7 @@ exports.getApplicants = async (req, res) => {
     // 🔥 FIXED QUERY
     const applications = await Application.find({ job_id })
       .populate("candidate_id", "name email")
+      .populate("job_id", "title company location")
       .sort({ createdAt: -1 });
 
     res.json(applications);
@@ -185,7 +186,8 @@ exports.updateApplicationStatus = async (req, res) => {
       id,
       { status },
       { new: true }
-    ).populate("candidate_id", "email");
+    ).populate("candidate_id", "email")
+    .populate("job_id", "title company location");
 
     if (!application) {
       return res.status(404).json({ message: "Application not found" });

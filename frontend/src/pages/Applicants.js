@@ -59,11 +59,15 @@ function Applicants() {
 
             {/* 🔥 JOB INFO */}
             <h3 className="text-lg font-bold">
-              {app.jobId?.title || "Job Title"}
+              {app.job_id?.title|| "Job Title"}
             </h3>
 
             <p className="text-gray-600">
-              Company: {app.jobId?.company || "N/A"}
+              Company: {app.job_id?.company || "N/A"}
+            </p>
+
+            <p className="text-gray-600">
+              Location: {app.job_id?.location || "N/A"}
             </p>
 
             {/* 👤 Candidate Info */}
