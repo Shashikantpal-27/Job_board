@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://job-board-1555.onrender.com",
+  baseURL: "https://job-board-1555.onrender.com/api",
 });
 
 // 🔥 ADD THIS (VERY IMPORTANT)
