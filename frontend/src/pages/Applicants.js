@@ -81,7 +81,7 @@ function Applicants() {
             {/* 📄 Resume */}
             {app.resume && (
               <a
-                href={`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/uploads/${app.resume}`}
+                href={`${process.env.REACT_APP_API_URL || "https://job-board-1555.onrender.com"}/uploads/${app.resume}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-blue-500 text-sm block mt-2"

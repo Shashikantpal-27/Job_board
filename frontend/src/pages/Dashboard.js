@@ -109,7 +109,7 @@ function Dashboard() {
             {/* Resume */}
             {a.resume && (
               <a
-                href={`http://localhost:5000/uploads/${a.resume}`}
+                href={`https://job-board-1555.onrender.com/uploads/${a.resume}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-blue-500 text-sm block mt-1"

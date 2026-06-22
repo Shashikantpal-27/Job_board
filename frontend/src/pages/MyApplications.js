@@ -6,7 +6,7 @@ function MyApplications() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/my-applications", {
+    axios.get("https://job-board-1555.onrender.com/api/my-applications", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

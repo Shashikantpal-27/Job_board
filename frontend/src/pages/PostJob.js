@@ -28,7 +28,7 @@ function PostJob() {
       console.log("SENDING DATA:", form); // debug
 
       await axios.post(
-        "http://localhost:5000/api/jobs",
+        "https://job-board-1555.onrender.com/api/jobs",
         form,
         {
           headers: {

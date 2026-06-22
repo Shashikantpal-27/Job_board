@@ -20,7 +20,7 @@ function EditJob() {
   // 🔥 Fetch job data
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/jobs")
+      .get("https://job-board-1555.onrender.com/api/jobs")
       .then((res) => {
         const job = res.data.find((j) => j.id === id);
 
@@ -51,7 +51,7 @@ function EditJob() {
   const handleUpdate = async () => {
     try {
       await axios.put(
-        `http://localhost:5000/api/jobs/${id}`,
+        `https://job-board-1555.onrender.com/api/jobs/${id}`,
         form,
         {
           headers: {
